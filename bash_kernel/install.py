@@ -8,7 +8,7 @@ from IPython.utils.tempdir import TemporaryDirectory
 
 kernel_json = {"argv":[sys.executable,"-m","bash_kernel", "-f", "{connection_file}"],
  "display_name":"Bash",
- "language":"bash",
+ "language":"python3",
  "codemirror_mode":"shell",
  "env":{"PS1": "$"}
 }
