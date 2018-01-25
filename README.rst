@@ -1,5 +1,7 @@
 A Jupyter kernel for bash
 
+Forked from [takluyver/bash_kernel](https://github.com/takluyver/bash_kernel)
+
 This requires IPython 3.
 
 To install::
