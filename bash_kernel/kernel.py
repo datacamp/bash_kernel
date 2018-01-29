@@ -240,6 +240,11 @@ class BashKernel(Kernel):
             _msg = {'name': 'stdout', 'text': '\n\n' + res.result._summarize()}
             self.send_response(self.iopub_socket, 'stream', _msg)
 
+            self.send_response(self.iopub_socket,
+                               'display_data',
+                               {'data': { 'application/json': res.result.json_output }, 'metadata': {} }
+                               )
+
         return {'status': 'ok', 'execution_count': self.execution_count,
                 'payload': [], 'user_expressions': {}}
 
