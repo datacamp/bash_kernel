@@ -81,6 +81,7 @@ class BashKernel(Kernel):
     def __init__(self, **kwargs):
         Kernel.__init__(self, **kwargs)
         self.ipy_shell = InteractiveShell()
+        self.ipy_shell.extension_manager.load_extension('ipython_nose')
         InteractiveShell._instance = self.ipy_shell
         self._start_bash()
 
