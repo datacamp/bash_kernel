@@ -242,7 +242,7 @@ class BashKernel(Kernel):
 
             self.send_response(self.iopub_socket,
                                'display_data',
-                               {'data': { 'application/json': res.result.json_output }, 'metadata': {} }
+                               {'data': res.result.json_output, 'metadata': {} }
                                )
 
         return {'status': 'ok', 'execution_count': self.execution_count,
