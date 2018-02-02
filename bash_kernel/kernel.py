@@ -8,6 +8,8 @@ import os.path
 import re
 import signal
 
+from IPython.core.interactiveshell import InteractiveShell
+
 __version__ = '0.7.1'
 
 version_pat = re.compile(r'version (\d+(\.\d+)+)')
@@ -78,6 +80,9 @@ class BashKernel(Kernel):
 
     def __init__(self, **kwargs):
         Kernel.__init__(self, **kwargs)
+        self.ipy_shell = InteractiveShell()
+        self.ipy_shell.extension_manager.load_extension('ipython_nose')
+        InteractiveShell._instance = self.ipy_shell
         self._start_bash()
 
     def _start_bash(self):
@@ -107,6 +112,7 @@ class BashKernel(Kernel):
 
         # Register Bash function to write image data to temporary file
         self.bashwrapper.run_command(image_setup_cmd)
+        self.ipy_shell.user_ns['bash'] = self.bashwrapper
 
     def process_output(self, output):
         if not self.silent:
@@ -128,6 +134,53 @@ class BashKernel(Kernel):
 
 
     def do_execute(self, code, silent, store_history=True,
+                   user_expressions=None, allow_stdin=False):
+
+        if code.startswith('#DC_GRADE'):
+            return self._execute_python(code.lstrip('#DC_GRADE'))
+        else:
+            return self._execute_bash(code, silent, store_history, 
+                                      user_expressions, allow_stdin)
+
+    def do_complete(self, code, cursor_pos):
+        code = code[:cursor_pos]
+        default = {'matches': [], 'cursor_start': 0,
+                   'cursor_end': cursor_pos, 'metadata': dict(),
+                   'status': 'ok'}
+
+        if not code or code[-1] == ' ':
+            return default
+
+        tokens = code.replace(';', ' ').split()
+        if not tokens:
+            return default
+
+        matches = []
+        token = tokens[-1]
+        start = cursor_pos - len(token)
+
+        if token[0] == '$':
+            # complete variables
+            cmd = 'compgen -A arrayvar -A export -A variable %s' % token[1:] # strip leading $
+            output = self.bashwrapper.run_command(cmd).rstrip()
+            completions = set(output.split())
+            # append matches including leading $
+            matches.extend(['$'+c for c in completions])
+        else:
+            # complete functions and builtins
+            cmd = 'compgen -cdfa %s' % token
+            output = self.bashwrapper.run_command(cmd).rstrip()
+            matches.extend(output.split())
+
+        if not matches:
+            return default
+        matches = [m for m in matches if m.startswith(token)]
+
+        return {'matches': sorted(matches), 'cursor_start': start,
+                'cursor_end': cursor_pos, 'metadata': dict(),
+                'status': 'ok'}
+
+    def _execute_bash(self, code, silent, store_history=True,
                    user_expressions=None, allow_stdin=False):
         self.silent = silent
         if not code.strip():
@@ -171,40 +224,27 @@ class BashKernel(Kernel):
             return {'status': 'ok', 'execution_count': self.execution_count,
                     'payload': [], 'user_expressions': {}}
 
-    def do_complete(self, code, cursor_pos):
-        code = code[:cursor_pos]
-        default = {'matches': [], 'cursor_start': 0,
-                   'cursor_end': cursor_pos, 'metadata': dict(),
-                   'status': 'ok'}
+    def _execute_python(self, code):
+        # run cell
+        try: 
+            res = self.ipy_shell.run_cell(code)
+            res.raise_error()
+            message = {'name': 'stdout', 'text': str(res.result)}
+        except Exception as e:
+            message = {'name': 'stdout', 'text': repr(e)}
 
-        if not code or code[-1] == ' ':
-            return default
+        self.send_response(self.iopub_socket, 'stream', message)
 
-        tokens = code.replace(';', ' ').split()
-        if not tokens:
-            return default
+        # if ran nose test, send summary of results
+        if hasattr(res.result, '_summarize'):
+            _msg = {'name': 'stdout', 'text': '\n\n' + res.result._summarize()}
+            self.send_response(self.iopub_socket, 'stream', _msg)
 
-        matches = []
-        token = tokens[-1]
-        start = cursor_pos - len(token)
+            self.send_response(self.iopub_socket,
+                               'display_data',
+                               {'data': res.result.json_output, 'metadata': {} }
+                               )
 
-        if token[0] == '$':
-            # complete variables
-            cmd = 'compgen -A arrayvar -A export -A variable %s' % token[1:] # strip leading $
-            output = self.bashwrapper.run_command(cmd).rstrip()
-            completions = set(output.split())
-            # append matches including leading $
-            matches.extend(['$'+c for c in completions])
-        else:
-            # complete functions and builtins
-            cmd = 'compgen -cdfa %s' % token
-            output = self.bashwrapper.run_command(cmd).rstrip()
-            matches.extend(output.split())
+        return {'status': 'ok', 'execution_count': self.execution_count,
+                'payload': [], 'user_expressions': {}}
 
-        if not matches:
-            return default
-        matches = [m for m in matches if m.startswith(token)]
-
-        return {'matches': sorted(matches), 'cursor_start': start,
-                'cursor_end': cursor_pos, 'metadata': dict(),
-                'status': 'ok'}
