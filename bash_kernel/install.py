@@ -21,8 +21,6 @@ def install_my_kernel_spec(user=True, prefix=None):
         # TODO: Copy resources once they're specified
 
         print('Installing IPython kernel spec')
-        # TODO: remove line below once projects backend is updated w/ bash config
-        KernelSpecManager().install_kernel_spec(td, 'python3', user=user, replace=True, prefix=prefix)
         KernelSpecManager().install_kernel_spec(td, 'bash', user=user, replace=True, prefix=prefix)
         # Also install as shell for consistency, since it's the name DC images use
         KernelSpecManager().install_kernel_spec(td, 'shell', user=user, replace=True, prefix=prefix)
