@@ -122,6 +122,9 @@ class BashKernel(Kernel):
             stream_content = {'name': 'stdout', 'text': output}
             self.send_response(self.iopub_socket, 'stream', stream_content)
 
+            # Save output of the last cell
+            self.ipy_shell.user_ns['last_output'] = output
+
             # Send images, if any
             for filename in image_filenames:
                 try:
