@@ -113,6 +113,7 @@ class BashKernel(Kernel):
         # Register Bash function to write image data to temporary file
         self.bashwrapper.run_command(image_setup_cmd)
         self.ipy_shell.user_ns['bash'] = self.bashwrapper
+        self.ipy_shell.user_ns['outputs'] = ''
 
     def process_output(self, output):
         if not self.silent:
@@ -123,7 +124,7 @@ class BashKernel(Kernel):
             self.send_response(self.iopub_socket, 'stream', stream_content)
 
             # Save output of the last cell
-            self.ipy_shell.user_ns['last_output'] = output
+            self.ipy_shell.user_ns['outputs'] += output
 
             # Send images, if any
             for filename in image_filenames:
