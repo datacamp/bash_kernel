@@ -113,7 +113,7 @@ class BashKernel(Kernel):
         # Register Bash function to write image data to temporary file
         self.bashwrapper.run_command(image_setup_cmd)
         self.ipy_shell.user_ns['bash'] = self.bashwrapper
-        self.ipy_shell.user_ns['outputs'] = ''
+        self.ipy_shell.user_ns['outputs'] = "\n"
 
     def process_output(self, output):
         if not self.silent:
