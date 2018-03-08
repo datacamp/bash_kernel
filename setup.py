@@ -12,7 +12,7 @@ from setuptools import setup
 
 setup(
 	name = 'bash_kernel',
-	version = '0.7.1',
+	version = '0.7.2',
 	packages = ['bash_kernel'],
 	install_requires = ['pexpect>=4.0', 'ipython_nose>=0.3.0'],
         description = 'A bash kernel for jupyter',
